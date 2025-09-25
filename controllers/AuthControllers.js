@@ -2,6 +2,7 @@ import { compare } from "bcrypt"
 import bcrypt from "bcrypt"
 import { User } from "../models/UserModel.js"
 import jwt from "jsonwebtoken"
+import { renameSync, unlinkSync } from "fs"
 import { transport } from "../nodemailer.js"
 export const signup = async (req, res) => {
     try {
@@ -13,12 +14,13 @@ export const signup = async (req, res) => {
         const user = await User.create({ email, password: hashedPassword })
         await user.save()
         const token = jwt.sign({ email, id: user.id }, process.env.JWT_KEY, { expiresIn: '7d' })
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('jwt', token, {
             httpOnly: true,
-            // secure: process.env.NODE_ENV === "production", // true in production only
-            // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+            secure: isProduction,
+            sameSite: isProduction ? "None" : "Lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
-        })
+        });
         const mailOptions = {
             from: process.env.SENDER_MAIL,
             to: email,
@@ -58,12 +60,14 @@ export const login = async (req, res) => {
                 message: "Password mismatched"
             })
         }
-        const token = jwt.sign({ email, id: user.id }, process.env.JWT_kEY, { expiresIn: '7d' })
+        const token = jwt.sign({ email, id: user.id }, process.env.JWT_KEY, { expiresIn: '7d' })
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('jwt', token, {
-            secure: true,
-            sameSite: "None",
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? "None" : "Lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
-        })
+        });
         return res.status(200).json({
             user: {
                 id: user.id,
@@ -207,6 +211,46 @@ export const logout = async (req, res) => {
         res.send(error.message)
     }
 }
+export const addProfileImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).send("File is required")
+        }
+        const date = Date.now()
+        let fileName = "uploads/profiles/" + date + req.file.originalname
+        renameSync(req.file.path,fileName)
+        const updatedUser = await User.findByIdAndUpdate(
+            req.userId,
+            {image: fileName},
+            {new:true , runValidators:true}
+        )
+        if(!updatedUser){
+            return res.status(404).send("User not Found")
+        }
+        return res.status(200).json({
+            image: updatedUser.image,
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+export const removeProfileImage = async (req, res) => {
+    try {
+        const userid = req.userId
+        const user = await User.findById(userid)
+        if(!user){
+            res.status(404).send("User not found")
+        }
+        if(user.image){
+            unlinkSync(user.image)
+        }
+        user.image = null
+        await user.save()
+        return res.status(200).send("Profile image removed successfully")
+    } catch (error) {
+        console.log(error)
+    }
+}
 export const profilesetup = async (req, res) => {
     try {
         const userid = req.body.userId
@@ -217,7 +261,7 @@ export const profilesetup = async (req, res) => {
         const user = await User.findByIdAndUpdate(userid, {
             firstname, lastname, color,
             profilesetup: true
-        }, { new: true , runValidators:true })
+        }, { new: true, runValidators: true })
         return res.status(200).json({
             id: user.id,
             email: user.email,

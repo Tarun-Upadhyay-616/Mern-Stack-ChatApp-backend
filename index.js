@@ -6,6 +6,7 @@ import jsonwebtoken from "jsonwebtoken"
 import cookieparser from "cookie-parser"
 import authroutes from "./routes/AuthRoutes.js"
 import contactsroutes from "./routes/ContactsRoutes.js"
+import setupSocket from "./socket.js"
 dotenv.config()
 
 const port  = process.env.PORT || 3005
@@ -16,8 +17,9 @@ app.use(cors({
     methods: ["GET","POST","PUT","PATCH","DELETE"],
     credentials: true
 }))
-app.use(express.json())
 app.use(cookieparser())
+app.use(express.json())
+app.use('/uploads/profiles',express.static("uploads/profiles"))
 app.use('/api/auth',authroutes)
 app.use('/api/contacts',contactsroutes)
 app.get("/",(req,res)=>{
@@ -28,6 +30,7 @@ mongoose.connect(dburl)
     .catch((err)=>{
         console.log(err.message);
     })
-app.listen(port,()=>{
+const server = app.listen(port,()=>{
     console.log(`App listening on http://localhost:${port}`)
 })
+setupSocket(server)
