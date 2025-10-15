@@ -4,7 +4,7 @@ import { User } from "../models/UserModel.js";
 export const SearchContacts = async (req, res, next) => {
   const { searchTerm } = req.body;
   try {
-    if (searchTerm==undefined || searchTerm ==null) {
+    if (searchTerm === undefined || searchTerm === null) {
       return res.status(400).send("SearchTerm is required");
     }
     const sanitizedSearchTerm = searchTerm.replace(
@@ -23,7 +23,7 @@ export const SearchContacts = async (req, res, next) => {
 
     return res.status(200).json({ contacts });
   } catch (error) {
-    console.error(error.message);
+    console.error(error.message)
     return res.status(500).json({ error: "Internal server error" });
   }
 };

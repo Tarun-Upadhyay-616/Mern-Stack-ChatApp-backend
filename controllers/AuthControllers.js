@@ -130,8 +130,8 @@ export const sendotp = async (req, res) => {
 }
 export const resetotp = async (req, res) => {
     const otp = String(Math.floor(100000 + Math.random() * 900000))
-    const email = req.body
-    const user = await User.findOne(email)
+    const {email} = req.body
+    const user = await User.findOne({email})
     if (!user) {
         res.json({
             success: false,
@@ -153,16 +153,17 @@ export const resetotp = async (req, res) => {
     })
 }
 export const passwordReset = async (req, res) => {
-    const userotp = req.body
-    const email = req.body
-    const newpass = req.body
-    const user = await User.findById(email)
+    const {userotp} = req.body
+    const {email} = req.body
+    const {newpass} = req.body
+    const user = await User.findOne({email})
     if (user.verifyotp == userotp) {
         user.verifyotp = ""
         user.password = newpass
+        await user.save()
         res.json({
             success: true,
-            message: "password chnaged Succesfully"
+            message: "password changed Succesfully"
         })
     } else {
         res.json({

@@ -7,6 +7,7 @@ import cookieparser from "cookie-parser"
 import authroutes from "./routes/AuthRoutes.js"
 import contactsroutes from "./routes/ContactsRoutes.js"
 import setupSocket from "./socket.js"
+import messageroutes from "./routes/MessageRoutes.js"
 dotenv.config()
 
 const port  = process.env.PORT || 3005
@@ -22,6 +23,7 @@ app.use(express.json())
 app.use('/uploads/profiles',express.static("uploads/profiles"))
 app.use('/api/auth',authroutes)
 app.use('/api/contacts',contactsroutes)
+app.use('/api/message',messageroutes)
 app.get("/",(req,res)=>{
     res.send("Working")
 })
