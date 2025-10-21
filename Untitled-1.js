@@ -35,7 +35,7 @@ export const getRecentChats = async (req, res, next) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.userId);
 
-        const contacts = await Message.aggregate([
+        const recentChats = await Message.aggregate([
 
             {
                 $match: {
@@ -56,9 +56,15 @@ export const getRecentChats = async (req, res, next) => {
                             else: "$sender",
                         },
                     },
-                    lastMessageTime: { $first: "$timestamp" },
+                    lastMessage: { $first: "$content" },
+                    lastMessageTimestamp: { $first: "$timestamp" },
                 },
             },
+           
+            {
+                $sort: { lastMessageTimestamp: -1 },
+            },
+           
             {
                 $lookup: {
                     from: "users",
@@ -70,24 +76,44 @@ export const getRecentChats = async (req, res, next) => {
             {
                 $unwind: "$contactInfo",
             },
-
+            {
+                $lookup: {
+                    from: "messages",
+                    let: { contactId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$sender", "$$contactId"] },
+                                        { $eq: ["$recipient", userId] },
+                                        { $eq: ["$read", false] },
+                                    ],
+                                },
+                            },
+                        },
+                        { $count: "unreadCount" },
+                    ],
+                    as: "unreadInfo",
+                },
+            },
             {
                 $project: {
-                    _id: 1,
-                    lastMessageTime: 1,
-                    email: "$contactInfo.email",
+                    _id: "$contactInfo._id",
                     firstname: "$contactInfo.firstname",
                     lastname: "$contactInfo.lastname",
                     image: "$contactInfo.image",
                     color: "$contactInfo.color",
+                    lastMessage: "$lastMessage",
+                    lastMessageTimestamp: "$lastMessageTimestamp",
+                    unreadCount: {
+                        $ifNull: [{ $first: "$unreadInfo.unreadCount" }, 0],
+                    },
                 },
             },
-            {
-                $sort:{lastMessageTime:-1},
-            }
         ]);
 
-        return res.status(200).json({ contacts });
+        return res.status(200).json({ chats: recentChats });
     } catch (error) {
         console.error("Error fetching recent chats:", error);
         return res.status(500).json({ message: "Internal server error." });

@@ -174,7 +174,7 @@ export const passwordReset = async (req, res) => {
 
 }
 export const verifymail = async (req, res) => {
-    const userid = req.body.userId
+    const userid = req.userId
     const { userotp } = req.body
     const user = await User.findById(userid)
     if (!user) {
@@ -254,10 +254,10 @@ export const removeProfileImage = async (req, res) => {
 }
 export const profilesetup = async (req, res) => {
     try {
-        const userid = req.body.userId
+        const userid = req.userId
         const { firstname, lastname, color } = req.body
-        if (!firstname || !lastname || !color) {
-            return res.status(400).send("Firstname, Lastname, Color are required")
+        if (!firstname || !lastname) {
+            return res.status(400).send("Firstname and Lastname are required")
         }
         const user = await User.findByIdAndUpdate(userid, {
             firstname, lastname, color,

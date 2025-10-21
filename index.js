@@ -21,6 +21,7 @@ app.use(cors({
 app.use(cookieparser())
 app.use(express.json())
 app.use('/uploads/profiles',express.static("uploads/profiles"))
+app.use('/uploads/files',express.static("uploads/files"))
 app.use('/api/auth',authroutes)
 app.use('/api/contacts',contactsroutes)
 app.use('/api/message',messageroutes)
